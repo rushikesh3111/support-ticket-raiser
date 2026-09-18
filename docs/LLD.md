@@ -76,6 +76,14 @@
   - `is_read`: Boolean (default False)
   - `created_at`: DateTime
 
+- **`kb_articles`**:
+  - `id`: Integer (PK)
+  - `title`: String(255)
+  - `content`: Text
+  - `category`: String(100)
+  - `tags`: String(255) (Nullable)
+  - `created_at`: DateTime
+
 ## 2. API Contract Specification
 
 | Method | Endpoint | Description | Auth Required |
@@ -104,6 +112,11 @@
 | GET  | `/api/v1/notifications/` | User notifications | Bearer JWT |
 | PUT  | `/api/v1/notifications/{id}/read` | Mark notification read | Bearer JWT |
 | PUT  | `/api/v1/notifications/read-all` | Mark all read | Bearer JWT |
+| GET  | `/api/v1/kb/` | Search and list Knowledge Base articles | No |
+| POST | `/api/v1/kb/` | Publish new KB article | Staff |
+| GET  | `/api/v1/kb/{article_id}` | Get full article content | No |
+| POST | `/api/v1/actions/tickets/bulk` | Bulk status / assignment operations | Staff |
+| POST | `/api/v1/actions/tickets/{id}/csat` | Submit 5-star CSAT survey feedback | Customer / Owner |
 | WS   | `/ws/tickets/{ticket_id}` | Live ticket websocket updates | Token param |
 
 ## 3. State Machine Logic

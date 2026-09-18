@@ -21,7 +21,9 @@ from app.api.v1.routers import (
     sla,
     reports,
     notifications,
-    audit
+    audit,
+    kb,
+    advanced_actions
 )
 
 def seed_database():
@@ -66,6 +68,37 @@ def seed_database():
             )
             db.add(user)
 
+        # Seed KB Articles
+        from app.models.models import KBArticle
+        if db.query(KBArticle).count() == 0:
+            articles = [
+                KBArticle(
+                    title="How to reset your Corporate VPN Credentials",
+                    content="To reset your VPN password: 1. Navigate to identity.company.internal. 2. Request OTP via corporate authenticator. 3. Update Cisco AnyConnect password.",
+                    category="Network",
+                    tags="vpn, network, credentials, remote"
+                ),
+                KBArticle(
+                    title="Resolving 504 Gateway Timeout on Production API",
+                    content="If you encounter 504 Gateway Timeout: Verify backend service pod status, check nginx keepalive timeout, and ensure Redis caching layer is reachable.",
+                    category="Software",
+                    tags="504, gateway, timeout, api, nginx"
+                ),
+                KBArticle(
+                    title="Requesting Access to AWS Cloud Production Console",
+                    content="Production AWS console access requires Security Team Approval and Manager Signoff via the Access Request ticket category.",
+                    category="Access Request",
+                    tags="aws, cloud, iam, access, security"
+                ),
+                KBArticle(
+                    title="Hardware Replacement Protocol for Laptops and Monitors",
+                    content="Laptops older than 36 months are eligible for refresh. Submit a ticket under Hardware category with asset serial number tag.",
+                    category="Hardware",
+                    tags="hardware, laptop, replacement, asset"
+                )
+            ]
+            db.add_all(articles)
+
         db.commit()
         # Seed SLA policies
         init_default_sla_policies(db)
@@ -106,6 +139,8 @@ app.include_router(sla.router, prefix=settings.API_V1_STR)
 app.include_router(reports.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
 app.include_router(audit.router, prefix=settings.API_V1_STR)
+app.include_router(kb.router, prefix=settings.API_V1_STR)
+app.include_router(advanced_actions.router, prefix=settings.API_V1_STR)
 
 # Mount static uploads if exists
 if os.path.exists(settings.UPLOAD_DIR):
