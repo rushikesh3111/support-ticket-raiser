@@ -23,8 +23,10 @@ from app.api.v1.routers import (
     notifications,
     audit,
     kb,
-    advanced_actions
+    advanced_actions,
+    canned_responses
 )
+from app.core.middleware import ProductionSecurityMiddleware
 
 def seed_database():
     db = SessionLocal()
@@ -141,6 +143,10 @@ app.include_router(notifications.router, prefix=settings.API_V1_STR)
 app.include_router(audit.router, prefix=settings.API_V1_STR)
 app.include_router(kb.router, prefix=settings.API_V1_STR)
 app.include_router(advanced_actions.router, prefix=settings.API_V1_STR)
+app.include_router(canned_responses.router, prefix=settings.API_V1_STR)
+
+# Add Security & Performance Middleware
+app.add_middleware(ProductionSecurityMiddleware)
 
 # Mount static uploads if exists
 if os.path.exists(settings.UPLOAD_DIR):
