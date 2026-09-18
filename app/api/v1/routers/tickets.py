@@ -11,6 +11,7 @@ from app.models.models import User, UserRole, Ticket, TicketStatus, TicketPriori
 from app.schemas.schemas import TicketCreate, TicketUpdate, TicketResponse, TicketDetailResponse, TicketListResponse
 from app.services.sla_service import calculate_sla_deadlines
 from app.services.audit_service import record_audit, create_notification
+from app.api.v1.routers.enterprise import AUTO_ROUTING_TABLE
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -23,6 +24,9 @@ def create_ticket(
     created_now = datetime.utcnow()
     resp_due, resol_due = calculate_sla_deadlines(db, payload.priority, created_now)
 
+    # Automatic Intelligent Ticket Routing based on category
+    assigned_agent_id = AUTO_ROUTING_TABLE.get(payload.category.value, None)
+
     ticket = Ticket(
         title=payload.title,
         description=payload.description,
@@ -30,6 +34,7 @@ def create_ticket(
         priority=payload.priority,
         status=TicketStatus.OPEN,
         created_by=current_user.id,
+        assigned_to=assigned_agent_id,
         created_at=created_now,
         updated_at=created_now,
         response_due_at=resp_due,
@@ -40,6 +45,25 @@ def create_ticket(
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
+
+    # If automatically assigned, log audit & notify assignee
+    if assigned_agent_id:
+        assignee_obj = db.query(User).filter(User.id == assigned_agent_id).first()
+        if assignee_obj:
+            record_audit(
+                db,
+                ticket_id=ticket.id,
+                performed_by=None,
+                action="AUTO_ROUTED",
+                details=f"Intelligent rule assigned category '{payload.category.value}' to {assignee_obj.name}"
+            )
+            create_notification(
+                db,
+                user_id=assigned_agent_id,
+                ticket_id=ticket.id,
+                title=f"Auto-Assigned Ticket #{ticket.id}",
+                message=f"Ticket #{ticket.id} '{ticket.title}' was automatically routed to your queue."
+            )
 
     # Audit log
     record_audit(

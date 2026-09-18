@@ -8,13 +8,14 @@ import TicketDetailModal from './components/TicketDetailModal';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
+import EnterpriseConsoleModal from './components/EnterpriseConsoleModal';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LifeBuoy, Plus, Search, Filter, Bell, LogOut, Shield, 
   UserCheck, AlertCircle, Clock, CheckCircle2, ChevronRight, BarChart2,
   BookOpen, Sparkles, CheckSquare, Square, Download, RefreshCw, Sun, Moon,
-  Layers, Check, TrendingUp
+  Layers, Check, TrendingUp, Server
 } from 'lucide-react';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false);
+  const [isEnterpriseOpen, setIsEnterpriseOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tickets'); // 'tickets' | 'analytics'
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -186,6 +188,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Enterprise Console (Staff/Admin) */}
+            {isStaff && (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setIsEnterpriseOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white hover:bg-slate-800 border border-slate-700 text-xs font-bold rounded-2xl transition shadow-sm"
+              >
+                <Server className="w-4 h-4 text-emerald-400" />
+                <span>Enterprise Ops</span>
+              </motion.button>
+            )}
+
             {/* Dark Mode Toggle */}
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -531,6 +546,11 @@ export default function App() {
       <KnowledgeBaseModal
         isOpen={isKBOpen}
         onClose={() => setIsKBOpen(false)}
+      />
+
+      <EnterpriseConsoleModal
+        isOpen={isEnterpriseOpen}
+        onClose={() => setIsEnterpriseOpen(false)}
       />
 
       {selectedTicketId && (
