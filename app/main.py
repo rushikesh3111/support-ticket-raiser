@@ -28,11 +28,11 @@ def seed_database():
     db = SessionLocal()
     try:
         # Create default admin
-        admin = db.query(User).filter(User.email == "admin@supportdesk.local").first()
+        admin = db.query(User).filter(User.email == "admin@supportdesk.com").first()
         if not admin:
             admin = User(
                 name="System Administrator",
-                email="admin@supportdesk.local",
+                email="admin@supportdesk.com",
                 hashed_password=get_password_hash("AdminPass123!"),
                 role=UserRole.ADMIN,
                 department="IT Operations",
@@ -41,11 +41,11 @@ def seed_database():
             db.add(admin)
 
         # Create default agent
-        agent = db.query(User).filter(User.email == "agent@supportdesk.local").first()
+        agent = db.query(User).filter(User.email == "agent@supportdesk.com").first()
         if not agent:
             agent = User(
                 name="Sarah Jenkins (Senior Agent)",
-                email="agent@supportdesk.local",
+                email="agent@supportdesk.com",
                 hashed_password=get_password_hash("AgentPass123!"),
                 role=UserRole.AGENT,
                 department="Technical Support",
@@ -54,11 +54,11 @@ def seed_database():
             db.add(agent)
 
         # Create default regular user
-        user = db.query(User).filter(User.email == "user@supportdesk.local").first()
+        user = db.query(User).filter(User.email == "user@supportdesk.com").first()
         if not user:
             user = User(
                 name="John Raver (Customer)",
-                email="user@supportdesk.local",
+                email="user@supportdesk.com",
                 hashed_password=get_password_hash("UserPass123!"),
                 role=UserRole.USER,
                 department="Finance & HR",

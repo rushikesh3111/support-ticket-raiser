@@ -172,7 +172,7 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                       {ticket.attachments.map(att => (
                         <a
                           key={att.id}
-                          href={`http://${window.location.hostname}:8000/api/v1/attachments/${att.id}/download`}
+                          href={`http://${window.location.hostname}:8085/api/v1/attachments/${att.id}/download`}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center gap-2 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 transition"

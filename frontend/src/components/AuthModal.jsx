@@ -89,7 +89,7 @@ export default function AuthModal({ onLoginSuccess }) {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickLogin('admin@supportdesk.local', 'AdminPass123!')}
+                onClick={() => handleQuickLogin('admin@supportdesk.com', 'AdminPass123!')}
                 className="text-xs py-2 px-2.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 rounded-lg font-medium transition shadow-sm flex flex-col items-center gap-1 text-slate-700"
               >
                 <Shield className="w-4 h-4 text-purple-600" />
@@ -97,7 +97,7 @@ export default function AuthModal({ onLoginSuccess }) {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickLogin('agent@supportdesk.local', 'AgentPass123!')}
+                onClick={() => handleQuickLogin('agent@supportdesk.com', 'AgentPass123!')}
                 className="text-xs py-2 px-2.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 rounded-lg font-medium transition shadow-sm flex flex-col items-center gap-1 text-slate-700"
               >
                 <UserCheck className="w-4 h-4 text-emerald-600" />
@@ -105,7 +105,7 @@ export default function AuthModal({ onLoginSuccess }) {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickLogin('user@supportdesk.local', 'UserPass123!')}
+                onClick={() => handleQuickLogin('user@supportdesk.com', 'UserPass123!')}
                 className="text-xs py-2 px-2.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 rounded-lg font-medium transition shadow-sm flex flex-col items-center gap-1 text-slate-700"
               >
                 <User className="w-4 h-4 text-blue-600" />

@@ -1,5 +1,5 @@
-const API_BASE = window.location.origin.includes(':3000') || window.location.origin.includes(':5173')
-  ? `http://${window.location.hostname}:8000/api/v1`
+const API_BASE = window.location.origin.includes(':3005') || window.location.origin.includes(':5174') || window.location.origin.includes(':3000')
+  ? `http://${window.location.hostname}:8085/api/v1`
   : '/api/v1';
 
 export function getAuthToken() {

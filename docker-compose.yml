@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: support_ticket_backend
     ports:
-      - "8000:8000"
+      - "8085:8085"
     environment:
       - DATABASE_URL=sqlite:///./support_tickets.db
       - SECRET_KEY=support-ticket-super-secret-production-key-change-in-env-9921
@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile
     container_name: support_ticket_frontend
     ports:
-      - "3000:80"
+      - "3005:80"
     depends_on:
       - backend
     restart: always
