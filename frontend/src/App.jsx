@@ -9,13 +9,15 @@ import AnalyticsDashboard from './components/AnalyticsDashboard';
 import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
 import EnterpriseConsoleModal from './components/EnterpriseConsoleModal';
+import ComplianceModal from './components/ComplianceModal';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LifeBuoy, Plus, Search, Filter, Bell, LogOut, Shield, 
   UserCheck, AlertCircle, Clock, CheckCircle2, ChevronRight, BarChart2,
   BookOpen, Sparkles, CheckSquare, Square, Download, RefreshCw, Sun, Moon,
-  Layers, Check, TrendingUp, Server, Inbox, AlertTriangle, Activity, Zap, Cpu
+  Layers, Check, TrendingUp, Server, Inbox, AlertTriangle, Activity, Zap, Cpu,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function App() {
@@ -26,6 +28,7 @@ export default function App() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false);
   const [isEnterpriseOpen, setIsEnterpriseOpen] = useState(false);
+  const [isComplianceOpen, setIsComplianceOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tickets'); // 'tickets' | 'analytics'
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -207,15 +210,27 @@ export default function App() {
         <div className="flex items-center gap-3">
           {/* Enterprise Ops Launcher */}
           {isStaff && (
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setIsEnterpriseOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 text-xs font-bold rounded-2xl transition shadow-sm"
-            >
-              <Server className="w-4 h-4 text-emerald-400" />
-              <span>Enterprise Ops</span>
-            </motion.button>
+            <>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setIsEnterpriseOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 text-xs font-bold rounded-2xl transition shadow-sm"
+              >
+                <Server className="w-4 h-4 text-emerald-400" />
+                <span>Enterprise Ops</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setIsComplianceOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 text-xs font-bold rounded-2xl transition shadow-sm"
+              >
+                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>GDPR & Inbound</span>
+              </motion.button>
+            </>
           )}
 
           {/* Knowledge Base */}
@@ -641,6 +656,14 @@ export default function App() {
       <EnterpriseConsoleModal
         isOpen={isEnterpriseOpen}
         onClose={() => setIsEnterpriseOpen(false)}
+      />
+
+      <ComplianceModal
+        isOpen={isComplianceOpen}
+        onClose={() => {
+          setIsComplianceOpen(false);
+          fetchTickets();
+        }}
       />
 
       {selectedTicketId && (

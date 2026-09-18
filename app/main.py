@@ -26,7 +26,8 @@ from app.api.v1.routers import (
     advanced_actions,
     canned_responses,
     enterprise,
-    intelligence
+    intelligence,
+    compliance
 )
 from app.core.middleware import ProductionSecurityMiddleware
 
@@ -148,6 +149,7 @@ app.include_router(advanced_actions.router, prefix=settings.API_V1_STR)
 app.include_router(canned_responses.router, prefix=settings.API_V1_STR)
 app.include_router(enterprise.router, prefix=settings.API_V1_STR)
 app.include_router(intelligence.router, prefix=settings.API_V1_STR)
+app.include_router(compliance.router, prefix=settings.API_V1_STR)
 
 # Add Security & Performance Middleware
 app.add_middleware(ProductionSecurityMiddleware)
