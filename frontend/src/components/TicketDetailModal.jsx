@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Send, Paperclip, Clock, AlertTriangle, CheckCircle2, 
   UserCheck, ShieldAlert, History, MessageSquare, Lock, Download, Star,
-  Zap, Copy, Check
+  Zap, Sparkles, Brain, Cpu, ChevronRight, Activity, ArrowRight
 } from 'lucide-react';
 
 export default function TicketDetailModal({ ticketId, currentUser, onClose, onRefresh }) {
@@ -17,9 +17,11 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [agents, setAgents] = useState([]);
-  const [activeTab, setActiveTab] = useState('comments'); // 'comments' | 'history'
+  const [activeTab, setActiveTab] = useState('comments'); // 'comments' | 'history' | 'ai'
   const [macros, setMacros] = useState([]);
   const [showMacros, setShowMacros] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   const fetchTicket = async () => {
     try {
@@ -48,9 +50,22 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
     }
   };
 
+  const fetchAiTriage = async () => {
+    setLoadingAi(true);
+    try {
+      const data = await apiRequest(`/intelligence/tickets/${ticketId}/ai-triage`);
+      setAiAnalysis(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
   useEffect(() => {
     fetchTicket();
     fetchAgentsAndMacros();
+    fetchAiTriage();
   }, [ticketId]);
 
   const handleAddComment = async (e) => {
@@ -85,7 +100,7 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
       });
       if (newStatus === 'Resolved') {
         confetti({
-          particleCount: 100,
+          particleCount: 120,
           spread: 80,
           origin: { y: 0.5 }
         });
@@ -136,16 +151,16 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
   const showCSAT = isCustomer && (ticket?.status === 'Resolved' || ticket?.status === 'Closed');
 
   return (
-    <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xl z-50 flex items-center justify-center p-3 lg:p-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.93, y: 15 }}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.93, y: 15 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ type: "spring", duration: 0.45 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col border border-slate-100 dark:border-slate-800 overflow-hidden relative"
+        className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full h-[96vh] flex flex-col border border-slate-100 dark:border-slate-800 overflow-hidden relative"
       >
-        {/* Modal Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
+        {/* Full-width Modal Header */}
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/40">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs font-black bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-3 py-1 rounded-xl">
               #{ticket?.id}
@@ -167,7 +182,16 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
             }`}>
               {ticket?.priority} Priority
             </span>
+
+            {/* AI Triaged Badge */}
+            {aiAnalysis && (
+              <span className="text-[11px] font-bold px-2.5 py-0.5 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center gap-1">
+                <Brain className="w-3.5 h-3.5 text-purple-500" />
+                <span>AI Confidence: {Math.round(aiAnalysis.confidence_score * 100)}%</span>
+              </span>
+            )}
           </div>
+
           <motion.button
             whileHover={{ rotate: 90 }}
             whileTap={{ scale: 0.9 }}
@@ -178,24 +202,31 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
           </motion.button>
         </div>
 
-        {/* Modal Body */}
+        {/* Full Canvas Body (70% Thread / 30% Meta) */}
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-slate-400">Loading ticket details...</div>
         ) : (
-          <div className="flex-1 grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 overflow-hidden">
+          <div className="flex-1 grid grid-cols-12 divide-x divide-slate-100 dark:divide-slate-800 overflow-hidden">
             
-            {/* Left 2 Cols: Main Content & Thread */}
-            <div className="col-span-2 flex flex-col h-full overflow-hidden">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
-                <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-snug">{ticket.title}</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 font-normal">
+            {/* Left 8 Cols: Main Incident Narrative, Tabs & Conversation */}
+            <div className="col-span-8 flex flex-col h-full overflow-hidden bg-slate-50/20 dark:bg-slate-900/20">
+              {/* Incident Header Details */}
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 shrink-0 space-y-3 bg-white dark:bg-slate-900">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-snug">{ticket.title}</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Reported by {ticket.creator_name || `User #${ticket.created_by}`} on {new Date(ticket.created_at).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 font-normal">
                   {ticket.description}
                 </p>
 
                 {/* Attachments Section */}
                 {ticket.attachments && ticket.attachments.length > 0 && (
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Attached Documents</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Attached Logs & Diagnostics</p>
                     <div className="flex flex-wrap gap-2">
                       {ticket.attachments.map(att => (
                         <motion.a
@@ -217,7 +248,7 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                 )}
               </div>
 
-              {/* Tabs for Comments vs Audit History */}
+              {/* Tabs for Thread vs Audit vs AI Insights */}
               <div className="flex items-center gap-6 px-6 pt-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                 <button
                   onClick={() => setActiveTab('comments')}
@@ -237,9 +268,18 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                   <History className="w-3.5 h-3.5" />
                   Audit Trail ({ticket.audit_logs?.length || 0})
                 </button>
+                <button
+                  onClick={() => setActiveTab('ai')}
+                  className={`pb-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
+                    activeTab === 'ai' ? 'border-purple-600 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}
+                >
+                  <Brain className="w-3.5 h-3.5 text-purple-500" />
+                  AI Triage Copilot
+                </button>
               </div>
 
-              {/* Conversation Feed */}
+              {/* Feed Area */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {activeTab === 'comments' ? (
                   ticket.comments && ticket.comments.length > 0 ? (
@@ -276,9 +316,9 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                       </motion.div>
                     ))
                   ) : (
-                    <div className="text-center py-12 text-slate-400 text-xs">No comments yet. Start the conversation below.</div>
+                    <div className="text-center py-16 text-slate-400 text-xs">No comments yet. Start the conversation below.</div>
                   )
-                ) : (
+                ) : activeTab === 'history' ? (
                   ticket.audit_logs && ticket.audit_logs.length > 0 ? (
                     <div className="space-y-3">
                       {ticket.audit_logs.map(log => (
@@ -291,14 +331,55 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-400 text-xs">No audit records logged.</div>
+                    <div className="text-center py-16 text-slate-400 text-xs">No audit records logged.</div>
+                  )
+                ) : (
+                  /* AI Copilot Insights Tab */
+                  aiAnalysis && (
+                    <div className="space-y-4 animate-in fade-in">
+                      <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-2xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-black uppercase text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                            <Brain className="w-4 h-4 text-purple-600" /> Automated Triage & Sentiment Analysis
+                          </span>
+                          <span className="text-xs font-bold text-purple-700 dark:text-purple-300">Urgency: {aiAnalysis.urgency_score}/100</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-slate-400 block">Customer Sentiment:</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{aiAnalysis.sentiment}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Recommended SOP:</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{aiAnalysis.recommended_sop}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2">
+                        <span className="text-xs font-bold uppercase text-slate-400">AI Suggested Response:</span>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                          "{aiAnalysis.suggested_reply}"
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCommentText(aiAnalysis.suggested_reply);
+                            setActiveTab('comments');
+                          }}
+                          className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 pt-1"
+                        >
+                          Use this suggestion in reply →
+                        </button>
+                      </div>
+                    </div>
                   )
                 )}
               </div>
 
               {/* Add Comment Input */}
               {ticket.status !== 'Closed' && ticket.status !== 'Archived' ? (
-                <form onSubmit={handleAddComment} className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shrink-0">
+                <form onSubmit={handleAddComment} className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       {isStaff && (
@@ -360,14 +441,14 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder={isInternal ? "Write internal staff note..." : "Type reply to customer/agent..."}
-                      className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none font-medium shadow-sm"
+                      className="flex-1 px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none font-medium shadow-sm"
                     />
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       type="submit"
                       disabled={commentSubmitting || !commentText.trim()}
-                      className="px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-sm transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center"
+                      className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-sm transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center"
                     >
                       <Send className="w-4 h-4" />
                     </motion.button>
@@ -380,65 +461,52 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
               )}
             </div>
 
-            {/* Right Column: Meta & Actions */}
-            <div className="p-6 flex flex-col space-y-6 overflow-y-auto bg-slate-50/40 dark:bg-slate-900/40">
+            {/* Right 4 Cols: Full Incident Meta, SLA Monitor, Assignee & Actions */}
+            <div className="col-span-4 p-6 flex flex-col space-y-6 overflow-y-auto bg-slate-50/70 dark:bg-slate-900/60">
               
               {/* CSAT Widget for Customers when resolved */}
               {showCSAT && (
                 <CSATRatingWidget ticketId={ticket.id} onSubmitted={fetchTicket} />
               )}
 
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Ticket Information</h4>
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <span className="text-slate-400 block">Raised By:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{ticket.creator_name || `User #${ticket.created_by}`}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Category:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{ticket.category}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Created On:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{new Date(ticket.created_at).toLocaleString()}</span>
-                  </div>
+              {/* Incident SLA Monitor Widget */}
+              <div className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    SLA Compliance Tracker
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-md">LIVE</span>
                 </div>
-              </div>
-
-              {/* SLA Monitor Widget */}
-              <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  SLA Monitor
-                </h4>
+                
                 <div className="space-y-2.5 text-xs">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-700/50">
                     <span className="text-slate-500 dark:text-slate-400">First Response:</span>
                     {ticket.is_response_breached ? (
                       <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Breached
+                        <AlertTriangle className="w-3.5 h-3.5" /> Breached
                       </span>
                     ) : ticket.first_responded_at ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Met
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Met ({new Date(ticket.first_responded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
                       </span>
                     ) : (
-                      <span className="text-amber-600 font-bold">Pending</span>
+                      <span className="text-amber-600 font-bold">Pending First Reply</span>
                     )}
                   </div>
-                  <div className="flex justify-between items-center">
+
+                  <div className="flex justify-between items-center py-1">
                     <span className="text-slate-500 dark:text-slate-400">Resolution Due:</span>
                     {ticket.is_resolution_breached ? (
                       <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Breached
+                        <AlertTriangle className="w-3.5 h-3.5" /> Breached
                       </span>
                     ) : ticket.resolved_at ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Met
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Met ({new Date(ticket.resolved_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
                       </span>
                     ) : (
-                      <span className="text-slate-700 dark:text-slate-300 font-semibold">
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">
                         {ticket.resolution_due_at ? new Date(ticket.resolution_due_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : 'N/A'}
                       </span>
                     )}
@@ -446,14 +514,41 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
                 </div>
               </div>
 
+              {/* Full Meta Specs */}
+              <div className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Incident Specifications</h4>
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Category:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{ticket.category}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Priority Tier:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{ticket.priority}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Requester:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{ticket.creator_name || `User #${ticket.created_by}`}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Created:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{new Date(ticket.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Last Modified:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{new Date(ticket.updated_at).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Agent Assignment (Staff only) */}
               {isStaff && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Assignee</h4>
+                <div className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Active Assignee</h4>
                   <select
                     value={ticket.assigned_to || ''}
                     onChange={(e) => handleAssigneeChange(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                   >
                     <option value="">Unassigned</option>
                     {agents.map(a => (
@@ -465,8 +560,8 @@ export default function TicketDetailModal({ ticketId, currentUser, onClose, onRe
 
               {/* Status Action Buttons (Staff only) */}
               {isStaff && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Change Status</h4>
+                <div className="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">State Transition Actions</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {ticket.status !== 'In Progress' && ticket.status !== 'Closed' && (
                       <motion.button
