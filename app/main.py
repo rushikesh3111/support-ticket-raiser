@@ -1,0 +1,147 @@
+import os
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.core.config import settings
+from app.db.session import engine, Base, SessionLocal
+from app.models.models import User, UserRole, TicketPriority
+from app.core.security import get_password_hash, decode_token
+from app.services.sla_service import init_default_sla_policies
+from app.services.websocket_manager import ws_manager
+
+# Import API routers
+from app.api.v1.routers import (
+    auth,
+    users,
+    tickets,
+    comments,
+    attachments,
+    sla,
+    reports,
+    notifications,
+    audit
+)
+
+def seed_database():
+    db = SessionLocal()
+    try:
+        # Create default admin
+        admin = db.query(User).filter(User.email == "admin@supportdesk.local").first()
+        if not admin:
+            admin = User(
+                name="System Administrator",
+                email="admin@supportdesk.local",
+                hashed_password=get_password_hash("AdminPass123!"),
+                role=UserRole.ADMIN,
+                department="IT Operations",
+                is_active=True
+            )
+            db.add(admin)
+
+        # Create default agent
+        agent = db.query(User).filter(User.email == "agent@supportdesk.local").first()
+        if not agent:
+            agent = User(
+                name="Sarah Jenkins (Senior Agent)",
+                email="agent@supportdesk.local",
+                hashed_password=get_password_hash("AgentPass123!"),
+                role=UserRole.AGENT,
+                department="Technical Support",
+                is_active=True
+            )
+            db.add(agent)
+
+        # Create default regular user
+        user = db.query(User).filter(User.email == "user@supportdesk.local").first()
+        if not user:
+            user = User(
+                name="John Raver (Customer)",
+                email="user@supportdesk.local",
+                hashed_password=get_password_hash("UserPass123!"),
+                role=UserRole.USER,
+                department="Finance & HR",
+                is_active=True
+            )
+            db.add(user)
+
+        db.commit()
+        # Seed SLA policies
+        init_default_sla_policies(db)
+    finally:
+        db.close()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    seed_database()
+    yield
+    # Shutdown
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="Enterprise-grade Monolithic Support Ticket Raiser & Tracker System per final_support_tic.md",
+    lifespan=lifespan
+)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include Routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(users.router, prefix=settings.API_V1_STR)
+app.include_router(tickets.router, prefix=settings.API_V1_STR)
+app.include_router(comments.router, prefix=settings.API_V1_STR)
+app.include_router(attachments.router, prefix=settings.API_V1_STR)
+app.include_router(sla.router, prefix=settings.API_V1_STR)
+app.include_router(reports.router, prefix=settings.API_V1_STR)
+app.include_router(notifications.router, prefix=settings.API_V1_STR)
+app.include_router(audit.router, prefix=settings.API_V1_STR)
+
+# Mount static uploads if exists
+if os.path.exists(settings.UPLOAD_DIR):
+    app.mount("/static/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+# Health Check
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "architecture": "FastAPI Monolith"
+    }
+
+# Realtime WebSocket Endpoint for Ticket updates
+@app.websocket("/ws/tickets/{ticket_id}")
+async def ticket_websocket_endpoint(websocket: WebSocket, ticket_id: int, token: str = Query(None)):
+    # Basic token check
+    if not token:
+        await websocket.close(code=1008)
+        return
+    payload = decode_token(token)
+    if not payload:
+        await websocket.close(code=1008)
+        return
+
+    await ws_manager.connect(ticket_id, websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Echo or broadcast message
+            await ws_manager.broadcast_to_ticket(ticket_id, {
+                "event": "ticket_update",
+                "ticket_id": ticket_id,
+                "data": data
+            })
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ticket_id, websocket)

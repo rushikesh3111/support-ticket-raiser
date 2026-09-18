@@ -1,0 +1,341 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  getCurrentUser, removeAuthToken, apiRequest 
+} from './services/api';
+import AuthModal from './components/AuthModal';
+import CreateTicketModal from './components/CreateTicketModal';
+import TicketDetailModal from './components/TicketDetailModal';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import { 
+  LifeBuoy, Plus, Search, Filter, Bell, LogOut, Shield, 
+  UserCheck, AlertCircle, Clock, CheckCircle2, ChevronRight, BarChart2
+} from 'lucide-react';
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('tickets'); // 'tickets' | 'analytics'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchTickets = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    try {
+      let query = `/tickets/?limit=50`;
+      if (filterStatus) query += `&status=${filterStatus}`;
+      if (filterPriority) query += `&priority=${filterPriority}`;
+      if (searchQuery) query += `&search=${encodeURIComponent(searchQuery)}`;
+      
+      const data = await apiRequest(query);
+      setTickets(data.items || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    if (!currentUser) return;
+    try {
+      const data = await apiRequest('/notifications/');
+      setNotifications(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchTickets();
+      fetchNotifications();
+    }
+  }, [currentUser, filterStatus, filterPriority, searchQuery]);
+
+  const handleLogout = () => {
+    removeAuthToken();
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) {
+    return <AuthModal onLoginSuccess={(user) => setCurrentUser(user)} />;
+  }
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Top Navigation */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/30">
+                <LifeBuoy className="w-5 h-5" />
+              </div>
+              <span className="font-bold text-lg text-slate-900 tracking-tight">SupportDesk</span>
+            </div>
+
+            <nav className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('tickets')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeTab === 'tickets' ? 'bg-slate-100 text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Tickets Feed
+              </button>
+              {(currentUser.role === 'admin' || currentUser.role === 'agent') && (
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                    activeTab === 'analytics' ? 'bg-slate-100 text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  SLA & Reports
+                </button>
+              )}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Raise Ticket</span>
+            </button>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl relative transition"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 animate-in fade-in">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-2">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Notifications</span>
+                    <button
+                      onClick={async () => {
+                        await apiRequest('/notifications/read-all', { method: 'PUT' });
+                        fetchNotifications();
+                      }}
+                      className="text-[11px] text-blue-600 hover:underline font-semibold"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {notifications.length > 0 ? (
+                      notifications.map(n => (
+                        <div key={n.id} className={`p-2.5 rounded-xl text-xs border ${n.is_read ? 'bg-white border-slate-100' : 'bg-blue-50/50 border-blue-100'}`}>
+                          <p className="font-bold text-slate-900">{n.title}</p>
+                          <p className="text-slate-600 text-[11px] mt-0.5">{n.message}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 text-center py-4">No notifications</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* User Profile Capsule */}
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+              <div className="text-right">
+                <p className="text-xs font-bold text-slate-900">{currentUser.name}</p>
+                <span className="text-[10px] font-semibold uppercase text-blue-600 tracking-wider">
+                  {currentUser.role}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Sign Out"
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
+        {activeTab === 'analytics' ? (
+          <AnalyticsDashboard />
+        ) : (
+          <div className="space-y-6">
+            {/* Filters Bar */}
+            <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex-1 max-w-md relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by ticket title or description..."
+                  className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Open">Open</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="On Hold">On Hold</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
+                </select>
+
+                <select
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                  className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
+                >
+                  <option value="">All Priorities</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Ticket Table / List */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">Ticket</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Priority</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Assignee</th>
+                      <th className="py-3 px-4">SLA State</th>
+                      <th className="py-3 px-4">Created</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-10 text-slate-400">Loading tickets...</td>
+                      </tr>
+                    ) : tickets.length > 0 ? (
+                      tickets.map(t => (
+                        <tr
+                          key={t.id}
+                          onClick={() => setSelectedTicketId(t.id)}
+                          className="hover:bg-blue-50/40 cursor-pointer transition group"
+                        >
+                          <td className="py-4 px-4 font-semibold text-slate-900 max-w-xs truncate">
+                            <span className="font-mono text-slate-400 mr-2">#{t.id}</span>
+                            {t.title}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-full ${
+                              t.status === 'Open' ? 'bg-blue-100 text-blue-700' :
+                              t.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
+                              t.status === 'On Hold' ? 'bg-purple-100 text-purple-700' :
+                              t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' :
+                              t.status === 'Closed' ? 'bg-slate-200 text-slate-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {t.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className={`font-semibold ${
+                              t.priority === 'Critical' ? 'text-red-600' :
+                              t.priority === 'High' ? 'text-orange-600' :
+                              'text-slate-600'
+                            }`}>
+                              {t.priority}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-slate-600">{t.category}</td>
+                          <td className="py-4 px-4 text-slate-700 font-medium">
+                            {t.assignee_name || <span className="text-slate-400 italic">Unassigned</span>}
+                          </td>
+                          <td className="py-4 px-4">
+                            {t.is_response_breached || t.is_resolution_breached ? (
+                              <span className="text-red-600 font-bold flex items-center gap-1 text-[11px]">
+                                <AlertCircle className="w-3.5 h-3.5" /> Breached
+                              </span>
+                            ) : (
+                              <span className="text-emerald-600 font-semibold flex items-center gap-1 text-[11px]">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> In SLA
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-slate-500">
+                            {new Date(t.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 transition inline" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="text-center py-12 text-slate-400">
+                          No tickets found. Raise one using the button above!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Modals */}
+      <CreateTicketModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onTicketCreated={() => {
+          fetchTickets();
+          fetchNotifications();
+        }}
+      />
+
+      {selectedTicketId && (
+        <TicketDetailModal
+          ticketId={selectedTicketId}
+          currentUser={currentUser}
+          onClose={() => setSelectedTicketId(null)}
+          onRefresh={() => {
+            fetchTickets();
+            fetchNotifications();
+          }}
+        />
+      )}
+    </div>
+  );
+}
